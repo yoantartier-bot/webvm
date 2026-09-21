@@ -38,13 +38,14 @@ RUN rc-update add bootmisc boot && \
 # Utilisateur de la VM
 RUN adduser -D -s /bin/bash user && \
     echo 'user:password' | chpasswd && \
-    echo 'root:password' | chpasswd
+    echo 'root:password' | chpasswd && \
+    addgroup -S autologin && \
+    addgroup user autologin
 
 # Connexion automatique au bureau i3
-RUN sed -i 's/#autologin-user=/autologin-user=user/' /etc/lightdm/lightdm.conf && \
-    sed -i 's/#autologin-user-timeout=0/autologin-user-timeout=0/' /etc/lightdm/lightdm.conf && \
-    sed -i 's/#autologin-session=/autologin-session=i3/' /etc/lightdm/lightdm.conf
-
+RUN mkdir -p /etc/lightdm/lightdm.conf.d && \
+    printf '[Seat:*]\nautologin-user=user\nautologin-user-timeout=0\nautologin-session=i3\nuser-session=i3\n' \
+    > /etc/lightdm/lightdm.conf.d/50-autologin.conf
 # Configuration i3 :
 # - Thonny démarre automatiquement
 # - Alt+Entrée ouvre un terminal de la VM
