@@ -52,4 +52,12 @@ RUN mkdir -p /etc/local.d && \
     chmod +x /etc/local.d/thonny.start && \
     rc-update add local default
 
-CMD ["/bin/sh"]
+
+RUN printf '#!/bin/sh\n\
+/usr/bin/Xorg :0 -ac -noreset &\n\
+sleep 3\n\
+su - user -c "DISPLAY=:0 i3" &\n\
+wait\n' > /usr/local/bin/start-thonny && \
+chmod +x /usr/local/bin/start-thonny
+
+CMD ["/usr/local/bin/start-thonny"]
