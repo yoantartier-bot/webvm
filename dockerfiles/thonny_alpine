@@ -1,63 +1,44 @@
 FROM docker.io/i386/alpine:3.17
 
-# Dépôts Alpine 3.17
-RUN printf '%s\n' \
-    'https://dl-cdn.alpinelinux.org/alpine/v3.17/main' \
-    'https://dl-cdn.alpinelinux.org/alpine/v3.17/community' \
-    > /etc/apk/repositories
+RUN echo -e "\n@testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf
 
-# Linux graphique + Thonny
-# PAS de LightDM : on démarre X directement.
-RUN apk update && apk add --no-cache \
+RUN apk update && apk add \
     alpine-base \
-    eudev \
     udev-init-scripts \
     udev-init-scripts-openrc \
-    dbus \
+    eudev \
     xorg-server \
     xf86-input-libinput \
-    xinit \
+    lightdm \
     i3wm \
     font-dejavu \
+    xrandr \
+    xev \
     bash \
     xterm \
     python3 \
     thonny
 
-# Services nécessaires à WebVM / Xorg
 RUN rc-update add bootmisc boot && \
     rc-update add udev sysinit && \
     rc-update add udev-trigger sysinit && \
     rc-update add udev-settle sysinit && \
     rc-update add udev-postmount default && \
-    rc-update add dbus default
+    rc-update add dbus default && \
+    rc-update add lightdm default
 
-# Utilisateur de la session graphique
 RUN adduser -D -s /bin/bash user && \
-    echo 'user:password' | chpasswd
+    echo 'user:password' | chpasswd && \
+    echo 'root:password' | chpasswd
 
-# Configuration i3 :
-# Thonny se lance automatiquement.
-# Alt+Entrée ouvre xterm si besoin.
+RUN sed -i "s/#autologin-user=/autologin-user=user/g" /etc/lightdm/lightdm.conf && \
+    sed -i "s/#autologin-user-timeout=0/autologin-user-timeout=0/g" /etc/lightdm/lightdm.conf && \
+    sed -i "s/#autologin-session=/autologin-session=i3/g" /etc/lightdm/lightdm.conf
+
 RUN mkdir -p /home/user/.config/i3 && \
     printf 'set $mod Mod1\nfont pango:DejaVu Sans Mono 10\nexec --no-startup-id thonny\nbindsym $mod+Return exec xterm\n' \
     > /home/user/.config/i3/config && \
     chown -R user:user /home/user/.config
 
-# Au démarrage de Linux :
-# lancement automatique de Xorg + i3 sous l'utilisateur "user"
-RUN mkdir -p /etc/local.d && \
-    printf '#!/bin/sh\nsu - user -c "startx /usr/bin/i3 -- :0" >/tmp/thonny-desktop.log 2>&1 &\n' \
-    > /etc/local.d/thonny.start && \
-    chmod +x /etc/local.d/thonny.start && \
-    rc-update add local default
-
-
-RUN printf '#!/bin/sh\n\
-/usr/bin/Xorg :0 -ac -noreset &\n\
-sleep 3\n\
-su - user -c "DISPLAY=:0 i3" &\n\
-wait\n' > /usr/local/bin/start-thonny && \
-chmod +x /usr/local/bin/start-thonny
-
-CMD ["/usr/local/bin/start-thonny"]
+CMD ["/bin/sh"]
