@@ -1,13 +1,13 @@
 FROM docker.io/i386/alpine:3.17
 
-# Dépôts officiels Alpine 3.17.
-# Thonny 3.3.14 se trouve dans "community".
+# Dépôts Alpine 3.17
 RUN printf '%s\n' \
     'https://dl-cdn.alpinelinux.org/alpine/v3.17/main' \
     'https://dl-cdn.alpinelinux.org/alpine/v3.17/community' \
     > /etc/apk/repositories
 
-# Bureau graphique + Python + véritable Thonny
+# Linux graphique + Thonny
+# PAS de LightDM : on démarre X directement.
 RUN apk update && apk add --no-cache \
     alpine-base \
     eudev \
@@ -16,42 +16,40 @@ RUN apk update && apk add --no-cache \
     dbus \
     xorg-server \
     xf86-input-libinput \
-    lightdm \
-    lightdm-gtk-greeter \
+    xinit \
     i3wm \
     font-dejavu \
-    xrandr \
-    xev \
     bash \
     xterm \
     python3 \
     thonny
 
-# Démarrage des services nécessaires au bureau
+# Services nécessaires à WebVM / Xorg
 RUN rc-update add bootmisc boot && \
     rc-update add udev sysinit && \
     rc-update add udev-trigger sysinit && \
     rc-update add udev-settle sysinit && \
-    rc-update add dbus default && \
-    rc-update add lightdm default
+    rc-update add udev-postmount default && \
+    rc-update add dbus default
 
-# Utilisateur de la VM
+# Utilisateur de la session graphique
 RUN adduser -D -s /bin/bash user && \
-    echo 'user:password' | chpasswd && \
-    echo 'root:password' | chpasswd && \
-    addgroup -S autologin && \
-    addgroup user autologin
+    echo 'user:password' | chpasswd
 
-# Connexion automatique au bureau i3
-RUN mkdir -p /etc/lightdm/lightdm.conf.d && \
-    printf '[Seat:*]\nautologin-user=user\nautologin-user-timeout=0\nautologin-session=i3\nuser-session=i3\n' \
-    > /etc/lightdm/lightdm.conf.d/50-autologin.conf
 # Configuration i3 :
-# - Thonny démarre automatiquement
-# - Alt+Entrée ouvre un terminal de la VM
+# Thonny se lance automatiquement.
+# Alt+Entrée ouvre xterm si besoin.
 RUN mkdir -p /home/user/.config/i3 && \
     printf 'set $mod Mod1\nfont pango:DejaVu Sans Mono 10\nexec --no-startup-id thonny\nbindsym $mod+Return exec xterm\n' \
     > /home/user/.config/i3/config && \
     chown -R user:user /home/user/.config
+
+# Au démarrage de Linux :
+# lancement automatique de Xorg + i3 sous l'utilisateur "user"
+RUN mkdir -p /etc/local.d && \
+    printf '#!/bin/sh\nsu - user -c "startx /usr/bin/i3 -- :0" >/tmp/thonny-desktop.log 2>&1 &\n' \
+    > /etc/local.d/thonny.start && \
+    chmod +x /etc/local.d/thonny.start && \
+    rc-update add local default
 
 CMD ["/bin/sh"]
