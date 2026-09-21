@@ -11,7 +11,7 @@ export const printIntro = false;
 export const needsDisplay = true;
 
 // Démarrage complet d'Alpine / OpenRC / LightDM
-export const cmd = "/sbin/init";
+export const cmd = "/usr/local/bin/start-thonny";
 
 export const args = [];
 
