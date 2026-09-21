@@ -1,23 +1,21 @@
-// The root filesystem location
+// Image construite par GitHub Actions
 export const diskImageUrl = IMAGE_URL;
-// The root filesystem backend type
+
+// L'image est fournie par le workflow GitHub
 export const diskImageType = "github";
-// Print an introduction message about the technology
-export const printIntro = true;
-// Is a graphical display needed
-export const needsDisplay = false;
-// Executable full path (Required)
-export const cmd = CMD; // Default: "/bin/bash";
-// Arguments, as an array (Required)
-export const args = ARGS; // Default: ["--login"];
-// Optional extra parameters
+
+// Pas besoin du message d'introduction du terminal
+export const printIntro = false;
+
+// IMPORTANT : on veut un vrai affichage graphique
+export const needsDisplay = true;
+
+// Démarrage complet d'Alpine / OpenRC / LightDM
+export const cmd = "/sbin/init";
+
+export const args = [];
+
 export const opts = {
-	// Environment variables
-	env: ENV, // Default: ["HOME=/home/user", "TERM=xterm", "USER=user", "SHELL=/bin/bash", "EDITOR=vim", "LANG=en_US.UTF-8", "LC_ALL=C"],
-	// Current working directory
-	cwd: CWD, // Default: "/home/user",
-	// User id
-	uid: 1000,
-	// Group id
-	gid: 1000
+  uid: 0,
+  gid: 0
 };
